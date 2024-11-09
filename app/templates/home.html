@@ -20,37 +20,47 @@
         }
     </script>
 </head>
-<body class="bg-gray-100 min-h-screen p-8">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-start gap-4 mb-8">
-            <div class="climate-widget static sm:relative order-2 sm:order-1">
-                <div class="climate-data">
-                    <div class="climate-item">
-                        <i class="fas fa-thermometer-half"></i>
-                        <span id="temperature">Loading...</span>
-                    </div>
-                    <div class="climate-item">
-                        <i class="fas fa-tint"></i>
-                        <span id="humidity">Loading...</span>
-                    </div>
-                    <div class="climate-item">
-                        <i class="fas fa-clock"></i>
-                        <span id="last-update">Loading...</span>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Nuevo header -->
+    <header class="bg-gradient-to-b from-[#4dabf7] to-[#3994dd] shadow-lg mb-8">
+        <div class="max-w-6xl mx-auto p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-start gap-6">
+                <div class="climate-widget w-full sm:w-auto order-2 sm:order-1">
+                    <div class="climate-data text-lg">
+                        <div class="climate-item p-2">
+                            <i class="fas fa-thermometer-half text-xl"></i>
+                            <span id="temperature" class="text-lg">Loading...</span>
+                        </div>
+                        <div class="climate-item p-2">
+                            <i class="fas fa-tint text-xl"></i>
+                            <span id="humidity">Loading...</span>
+                        </div>
+                        <div class="climate-item p-2">
+                            <i class="fas fa-clock text-xl"></i>
+                            <span id="last-update">Loading...</span>
+                        </div>
                     </div>
                 </div>
+                <h1 class="title-container text-4xl sm:text-5xl md:text-6xl font-bold text-black text-center sm:text-left order-1 sm:order-2 flex items-center gap-4">
+                    <img 
+                        src="{{ url_for('static', path='images/eye.svg') }}"
+                        class="w-10 h-10 sm:w-12 sm:h-12 opacity-90"
+                        onerror="console.error('Failed to load image:', this.src)"
+                    >
+                    Naitatsaketa
+                </h1>
             </div>
-            <h1 class="text-4xl font-bold text-primary text-center sm:text-left order-1 sm:order-2 flex items-center gap-3">
-                <img src="{{ url_for('static', path='images/eye.svg') }}" alt="Eyes" class="w-10 h-10">
-                Naitatsaketa
-            </h1>
         </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-8">
         <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="relative">
                 <canvas 
                     id="camera" 
                     width="640" 
                     height="480"
-                    class="w-full h-full object-contain rounded-lg"
+                    class="w-full aspect-video object-contain rounded-lg"
                 ></canvas>
                 
                 <!-- Status indicator positioned inside the canvas -->
@@ -60,7 +70,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         const ws = new WebSocket(`ws://${window.location.host}/v1/stream/ws`);
@@ -105,6 +115,6 @@
     </script>
 
     <!-- Add custom JS before closing body tag -->
-    <script src="{{ url_for('static', path='/js/script.js') }}"></script>
+    <script src="{{ url_for('static', path='js/script.js') }}"></script>
 </body>
 </html>
