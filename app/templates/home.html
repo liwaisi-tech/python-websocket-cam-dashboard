@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Dashboard</title>
+    <!-- Add Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#333',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold text-primary mb-8 text-center">Camera Dashboard</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="aspect-video relative">
+                <canvas 
+                    id="camera" 
+                    width="640" 
+                    height="480"
+                    class="w-full h-full object-contain border border-gray-200 rounded-lg"
+                ></canvas>
+                
+                <!-- Updated positioning for the status indicator -->
+                <div id="status" class="absolute top-4 right-4 translate-x-0 flex items-center gap-2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                    <div id="statusDot" class="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span id="statusText">Connected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`ws://${window.location.host}/v1/stream/ws`);
+        const canvas = document.getElementById('camera');
+        const ctx = canvas.getContext('2d');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        
+        // Set WebSocket to handle binary data
+        ws.binaryType = 'arraybuffer';
+
+        ws.onmessage = function(event) {
+            // Create image from binary data
+            createImageBitmap(new Blob([event.data], { type: 'image/jpeg' }))
+                .then(imageBitmap => {
+                    ctx.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+                })
+                .catch(error => console.error('Error drawing frame:', error));
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket Error:', error);
+            statusDot.classList.remove('bg-green-500');
+            statusDot.classList.add('bg-red-500');
+            statusText.textContent = 'Error';
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket Connection Closed');
+            statusDot.classList.remove('bg-green-500');
+            statusDot.classList.add('bg-yellow-500');
+            statusText.textContent = 'Disconnected';
+        };
+
+        ws.onopen = function() {
+            statusDot.classList.add('bg-green-500');
+            statusText.textContent = 'Connected';
+        };
+    </script>
+</body>
+</html>
