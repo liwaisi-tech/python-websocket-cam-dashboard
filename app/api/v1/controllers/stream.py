@@ -6,6 +6,11 @@ import websockets
 
 router = APIRouter(prefix="/stream", tags=["Stream"])
 
+# Add these constants at the top of the file
+MAX_RECONNECTION_ATTEMPTS = 3
+RECONNECTION_DELAY = 5  # seconds
+ESP32_WEBSOCKET_URL = "ws://192.168.1.48/ws"
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -16,7 +21,11 @@ class ConnectionManager:
         logger.info(f"Client connected. Total connections: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        try:
+            self.active_connections.remove(websocket)
+        except ValueError:
+            # Connection was already removed or never existed
+            pass
         logger.info(f"Client disconnected. Total connections: {len(self.active_connections)}")
 
     async def broadcast(self, message: str):
@@ -30,37 +39,63 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    source_ws = None
+    reconnection_attempts = 0
+    
+    async def connect_to_camera():
+        try:
+            return await websockets.connect(ESP32_WEBSOCKET_URL)
+        except Exception as e:
+            logger.error(f"Failed to connect to camera: {str(e)}")
+            return None
+
     try:
         await websocket.accept()
         logger.info("Client connected")
         
-        # Use websockets library to connect to external stream
-        source_ws = await websockets.connect("ws://192.168.1.48/ws")
         while True:
+            if source_ws is None:
+                if reconnection_attempts >= MAX_RECONNECTION_ATTEMPTS:
+                    logger.error("Max reconnection attempts reached")
+                    await websocket.send_text("Camera connection failed after maximum retries")
+                    break
+                
+                source_ws = await connect_to_camera()
+                if source_ws is None:
+                    reconnection_attempts += 1
+                    logger.info(f"Retrying connection in {RECONNECTION_DELAY} seconds... (Attempt {reconnection_attempts}/{MAX_RECONNECTION_ATTEMPTS})")
+                    await asyncio.sleep(RECONNECTION_DELAY)
+                    continue
+                else:
+                    reconnection_attempts = 0  # Reset counter on successful connection
+                    
             try:
-                # Receive frame from source websocket
                 frame_base64 = await source_ws.recv()
                 try:
-                    # Forward frame to client
                     await websocket.send_text(frame_base64)
                     await asyncio.sleep(0.033)  # ~30 FPS
                 except Exception as e:
-                    logger.error(f"Error sending frame: {str(e)}")
+                    logger.error(f"Error sending frame to client: {str(e)}")
                     break
                     
+            except websockets.exceptions.ConnectionClosed:
+                logger.warning("Camera connection closed. Attempting to reconnect...")
+                await source_ws.close()
+                source_ws = None
+                
             except Exception as e:
                 logger.error(f"Error receiving frame from source: {str(e)}")
-                break
+                source_ws = None  # Force reconnection attempt
                 
     except Exception as e:
         logger.error(f"Stream error: {str(e)}")
     finally:
         manager.disconnect(websocket)
-        try:
-            await source_ws.close()
-        except Exception as e:
-            print(f"Error closing WebSocket: {e}")
-            pass
+        if source_ws:
+            try:
+                await source_ws.close()
+            except Exception as e:
+                logger.error(f"Error closing camera WebSocket: {e}")
 
 @router.get("/status")
 async def stream_status():

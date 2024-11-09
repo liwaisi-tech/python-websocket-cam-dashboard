@@ -4,6 +4,10 @@
     <title>Camera Dashboard</title>
     <!-- Add Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Add custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/styles.css') }}">
     <script>
         tailwind.config = {
             theme: {
@@ -18,19 +22,39 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-8">
     <div class="max-w-6xl mx-auto">
-        <h1 class="text-4xl font-bold text-primary mb-8 text-center">Camera Dashboard</h1>
-        
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-start gap-4 mb-8">
+            <div class="climate-widget static sm:relative order-2 sm:order-1">
+                <div class="climate-data">
+                    <div class="climate-item">
+                        <i class="fas fa-thermometer-half"></i>
+                        <span id="temperature">Loading...</span>
+                    </div>
+                    <div class="climate-item">
+                        <i class="fas fa-tint"></i>
+                        <span id="humidity">Loading...</span>
+                    </div>
+                    <div class="climate-item">
+                        <i class="fas fa-clock"></i>
+                        <span id="last-update">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <h1 class="text-4xl font-bold text-primary text-center sm:text-left order-1 sm:order-2 flex items-center gap-3">
+                <img src="{{ url_for('static', path='images/eye.svg') }}" alt="Eyes" class="w-10 h-10">
+                Naitatsaketa
+            </h1>
+        </div>
         <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="aspect-video relative">
+            <div class="relative">
                 <canvas 
                     id="camera" 
                     width="640" 
                     height="480"
-                    class="w-full h-full object-contain border border-gray-200 rounded-lg"
+                    class="w-full h-full object-contain rounded-lg"
                 ></canvas>
                 
-                <!-- Updated positioning for the status indicator -->
-                <div id="status" class="absolute top-4 right-4 translate-x-0 flex items-center gap-2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                <!-- Status indicator positioned inside the canvas -->
+                <div id="status" class="absolute top-4 right-4 flex items-center gap-2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                     <div id="statusDot" class="w-2 h-2 rounded-full bg-green-500"></div>
                     <span id="statusText">Connected</span>
                 </div>
@@ -52,6 +76,9 @@
             // Create image from binary data
             createImageBitmap(new Blob([event.data], { type: 'image/jpeg' }))
                 .then(imageBitmap => {
+                    // Adjust canvas size to match video frame
+                    canvas.width = imageBitmap.width;
+                    canvas.height = imageBitmap.height;
                     ctx.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
                 })
                 .catch(error => console.error('Error drawing frame:', error));
@@ -76,5 +103,8 @@
             statusText.textContent = 'Connected';
         };
     </script>
+
+    <!-- Add custom JS before closing body tag -->
+    <script src="{{ url_for('static', path='/js/script.js') }}"></script>
 </body>
 </html>

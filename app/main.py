@@ -14,15 +14,46 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Mount the static directory
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://0.0.0.0:8000",  # Your frontend port
+    "http://192.168.1.29:8085",  # Your climate API port
+    "http://192.168.1.29",       # Base domain
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Added OPTIONS
+    allow_headers=["*"],
+    expose_headers=["*"]  # Add this line
+)
 
 # Get the base directory
 BASE_DIR = Path(__file__).resolve().parent
+print(f"Base directory: {BASE_DIR}")
+print(f"Static directory: {BASE_DIR / 'static'}")
 
 # Configure templates and static files
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+static_dir = BASE_DIR / "static"
+if not static_dir.exists():
+    raise RuntimeError(f"Static directory does not exist: {static_dir}")
+
+# Add more detailed debug logging
+logger.debug(f"Current working directory: {Path.cwd()}")
+logger.debug(f"Static files will be served from: {static_dir}")
+logger.debug(f"CSS file exists: {(static_dir / 'css' / 'styles.css').exists()}")
+logger.debug(f"JS file exists: {(static_dir / 'js' / 'script.js').exists()}")
+
+# List contents of static directory
+logger.debug("Static directory contents:")
+for item in static_dir.rglob("*"):
+    logger.debug(f"  {item.relative_to(static_dir)}")
+
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Add root route for the front page
 @app.get("/")
